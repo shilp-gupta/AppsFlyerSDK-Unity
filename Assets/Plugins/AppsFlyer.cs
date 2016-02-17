@@ -125,22 +125,11 @@ public class AppsFlyer : MonoBehaviour {
 		mHandlePushNotification(attributesString);
 	}
 
-	#elif UNITY_ANDROID
+	#elif UNITY_ANDROID && !UNITY_EDITOR
 
 	private static AndroidJavaClass obj = new AndroidJavaClass ("com.appsflyer.AppsFlyerLib");
 	private static AndroidJavaObject cls_AppsFlyer = obj.CallStatic<AndroidJavaObject>("getInstance");
 	private static AndroidJavaClass cls_AppsFlyerHelper = new AndroidJavaClass("com.appsflyer.AppsFlyerUnityHelper");
-	
-	public static void trackEvent(string eventName,string eventValue){
-		using(AndroidJavaClass cls_UnityPlayer = new AndroidJavaClass("com.unity3d.player.UnityPlayer")) 
-		{
-			using(AndroidJavaObject cls_Activity = cls_UnityPlayer.GetStatic<AndroidJavaObject>("currentActivity")) 
-			{
-				cls_AppsFlyer.Call("trackEvent",cls_Activity, eventName, eventValue);
-			}
-		}
-		
-	}
 	
 	public static void setCurrencyCode(string currencyCode){
 		cls_AppsFlyer.Call("setCurrencyCode", currencyCode);
@@ -167,12 +156,23 @@ public class AppsFlyer : MonoBehaviour {
 		print("AF.cs setCollectAndroidID");
 		cls_AppsFlyer.Call("setCollectAndroidID", shouldCollect);
 	}
-	
+
+	static string devKey;
+
 	public static void init(string key){
 		print("AF.cs init");
+		devKey = key;
 		using (AndroidJavaClass cls_UnityPlayer = new AndroidJavaClass ("com.unity3d.player.UnityPlayer")) {
 			using (AndroidJavaObject cls_Activity = cls_UnityPlayer.GetStatic<AndroidJavaObject> ("currentActivity")) {
-				cls_AppsFlyer.Call("init", cls_Activity, key);
+				cls_Activity.Call("runOnUiThread", new AndroidJavaRunnable(init_cb));
+			}
+		}
+	}
+
+	static void init_cb() {
+		using (AndroidJavaClass cls_UnityPlayer = new AndroidJavaClass ("com.unity3d.player.UnityPlayer")) {
+			using (AndroidJavaObject cls_Activity = cls_UnityPlayer.GetStatic<AndroidJavaObject> ("currentActivity")) {
+				cls_AppsFlyer.Call("init", cls_Activity, devKey);
 			}
 		}
 	}
@@ -280,5 +280,6 @@ public class AppsFlyer : MonoBehaviour {
 	public static void getConversionData (){}
 	public static string getAppsFlyerId () {return null;}
 	public static void handleOpenUrl(string url, string sourceApplication, string annotation) {}
+
 	#endif
 }
